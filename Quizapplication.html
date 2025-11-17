@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Elite Quiz Master</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* Google Fonts Import for a nicer font */
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@300;400;700&display=swap');
+
+    :root {
+      /* Light Mode Colors */
+      --primary-bg-start: #667eea;
+      --primary-bg-end: #764ba2;
+      --text-color: white;
+      --box-bg: rgba(255,255,255,0.1);
+      --button-bg: #ffffff30;
+      --button-hover-bg: #ffffff50;
+      --correct-color: #4CAF50; /* Green */
+      --incorrect-color: #f44336; /* Red */
+      --leaderboard-bg: rgba(0,0,0,0.2);
+
+      /* New: Interactive Main Page Colors */
+      --accent-color-1: #8d44ad;
+      --accent-color-2: #e032e0;
+      --main-container-shadow: 0 15px 40px rgba(0,0,0,0.4);
+
+      --disclaimer-overlay-bg: rgba(0, 0, 0, 0.7);
+      --disclaimer-modal-bg: #2c3e50; /* Darker blue-grey for modal */
+      --disclaimer-text: #ecf0f1; /* Light grey for text */
+    }
+
+    body.dark {
+      /* Dark Mode Colors */
+      --primary-bg-start: #0f2027;
+      --primary-bg-end: #2c5364;
+      --text-color: #e0e0e0;
+      --box-bg: rgba(0,0,0,0.3);
+      --button-bg: #4a5d6e;
+      --button-hover-bg: #607d8b;
+      --correct-color: #66bb6a;
+      --incorrect-color: #ef5350;
+      --leaderboard-bg: rgba(0,0,0,0.4);
+
+      /* New: Interactive Main Page Colors Dark */
+      --accent-color-1: #3a005a;
+      --accent-color-2: #0a4f5d;
+      --main-container-shadow: 0 15px 40px rgba(0,0,0,0.6);
+
+      --disclaimer-overlay-bg: rgba(0, 0, 0, 0.85);
+      --disclaimer-modal-bg: #1a242c; /* Even darker for modal */
+      --disclaimer-text: #bdc3c7; /* Slightly darker light grey */
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(to bottom right, var(--primary-bg-start), var(--primary-bg-end));
+      color: var(--text-color);
+      transition: background 0.8s ease, color 0.8s ease;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 0;
+      box-sizing: border-box;
+      overflow-x: hidden; /* Prevent horizontal scroll */
+      position: relative; /* For pseudo-elements */
+      z-index: 1; /* Ensure content is above background */
+    }
+
+    /* Animated Background Overlay */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at top left, var(--accent-color-1) 0%, transparent 30%),
+                  radial-gradient(circle at bottom right, var(--accent-color-2) 0%, transparent 30%);
+      opacity: 0.3;
+      animation: gradientShift 15s ease-in-out infinite alternate;
+      z-index: -1; /* Behind content */
+    }
+
+    @keyframes gradientShift {
+      0% {
+        transform: translate(0, 0);
+        background-size: 150% 150%;
+      }
+      50% {
+        transform: translate(5%, 5%);
+        background-size: 170% 170%;
+      }
+      100% {
+        transform: translate(0, 0);
+        background-size: 150% 150%;
+      }
+    }
+
+
+    .container {
+      width: 90%;
+      max-width: 700px;
+      margin: auto;
+      padding: 30px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      box-shadow: var(--main-container-shadow); /* Use variable for shadow */
+      backdrop-filter: blur(5px);
+      animation: fadeInScale 0.8s ease-out;
+      border: 1px solid rgba(255,255,255,0.1); /* Subtle border */
+      z-index: 2; /* Ensure container is above background overlay */
+    }
+    h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: clamp(2rem, 5vw, 3rem); /* Responsive font size */
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+      text-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    }
+    h3 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: clamp(1.4rem, 3.5vw, 1.8rem); /* Responsive font size */
+      margin-top: 25px;
+      margin-bottom: 15px;
+    }
+    input, select, button {
+      padding: 12px 15px;
+      margin: 10px;
+      font-size: clamp(0.9rem, 2vw, 1.1rem); /* Responsive font size */
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      background: var(--button-bg);
+      color: var(--text-color);
+      transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      appearance: none; /* Remove default select arrow */
+      -webkit-appearance: none;
+      -moz-appearance: none;
+    }
+    input:focus, select:focus {
+        background: var(--button-hover-bg);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        transform: translateY(-2px); /* Slight lift on focus */
+    }
+    button {
+        cursor: pointer;
+        font-weight: bold;
+        min-width: 150px;
+    }
+    button:hover {
+        background: var(--button-hover-bg);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    }
+    button:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .question-box {
+      margin: 25px 0;
+      background: var(--box-bg);
+      border-radius: 20px;
+      padding: 25px;
+      animation: fadeIn 0.8s ease;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+    }
+    .answer-btn {
+      display: block;
+      margin: 12px auto;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      background: var(--button-bg);
+      color: var(--text-color);
+    }
+    .answer-btn.correct {
+        background-color: var(--correct-color);
+        animation: pulseCorrect 0.5s ease forwards;
+    }
+    .answer-btn.incorrect {
+        background-color: var(--incorrect-color);
+        animation: shakeIncorrect 0.3s ease forwards;
+    }
+    .answer-btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+
+    /* Specialized buttons */
+    #showHistoryBtn {
+      background: linear-gradient(45deg, #1abc9c, #16a085);
+      color: white;
+      font-size: clamp(0.95rem, 2.2vw, 1.15rem);
+      padding: 14px 20px;
+      margin-top: 20px;
+      box-shadow: 0 6px 15px rgba(0,128,128,0.4);
+    }
+    #showHistoryBtn:hover {
+      background: linear-gradient(45deg, #16a085, #1abc9c);
+      transform: translateY(-4px);
+    }
+
+    .home-button { /* Style for new Home buttons */
+        background: linear-gradient(45deg, #007bff, #0056b3);
+        color: white;
+        font-size: clamp(0.9rem, 2vw, 1rem);
+        padding: 10px 15px;
+        margin-top: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    .home-button:hover {
+        background: linear-gradient(45deg, #0056b3, #007bff);
+        transform: translateY(-2px);
+    }
+
+    #clearHistoryBtn { /* Style for Clear History button */
+        background: linear-gradient(45deg, #dc3545, #b30000); /* Red gradient */
+        color: white;
+        font-size: clamp(0.9rem, 2vw, 1rem);
+        padding: 10px 15px;
+        margin-top: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    #clearHistoryBtn:hover {
+        background: linear-gradient(45deg, #b30000, #dc3545);
+        transform: translateY(-2px);
+    }
+
+
+    #leaderboard, #score-history, #search-result {
+      background: var(--leaderboard-bg);
+      border-radius: 15px;
+      padding: 20px;
+      margin-top: 25px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+    }
+    #leaderboard ol, #score-history ul, #search-result ul {
+        list-style: none;
+        padding: 0;
+    }
+    #leaderboard li, #score-history li, #search-result li {
+        background: rgba(255,255,255,0.05);
+        margin-bottom: 8px;
+        padding: 10px;
+        border-radius: 8px;
+        display: flex;
+        flex-wrap: wrap; /* Allow wrapping on smaller screens */
+        justify-content: space-between;
+        align-items: center;
+        transition: background 0.3s ease;
+    }
+    #leaderboard li span, #score-history li span {
+        flex-basis: auto; /* Default flex basis */
+        margin: 2px 5px; /* Small margin for spacing */
+    }
+    @media (max-width: 480px) {
+        #leaderboard li, #score-history li {
+            flex-direction: column; /* Stack items vertically on very small screens */
+            align-items: flex-start; /* Align stacked items to start */
+        }
+        #leaderboard li span, #score-history li span {
+            width: 100%; /* Full width for stacked items */
+            text-align: center; /* Center text when stacked */
+            margin: 5px 0;
+        }
+    }
+
+    #leaderboard li:hover, #score-history li:hover {
+        background: rgba(255,255,255,0.1);
+    }
+    /* Specific styling for top 3 in leaderboard */
+    #leaderboard li.first-place {
+        background: linear-gradient(to right, #ffd70040, #ffc10730);
+        font-weight: bold;
+        border: 2px solid #FFD700;
+        transform: scale(1.02);
+        box-shadow: 0 0 15px rgba(255,215,0,0.5);
+    }
+    #leaderboard li.second-place {
+        background: linear-gradient(to right, #c0c0c040, #e0e0e030);
+        font-weight: bold;
+        border: 2px solid #C0C0C0;
+        transform: scale(1.01);
+        box-shadow: 0 0 10px rgba(192,192,192,0.5);
+    }
+    #leaderboard li.third-place {
+        background: linear-gradient(to right, #cd7f3240, #d2691e30);
+        font-weight: bold;
+        border: 2px solid #CD7F32;
+        box-shadow: 0 0 8px rgba(205,127,50,0.5);
+    }
+    /* Remove previous nth-child styles to avoid conflict */
+    /* #leaderboard li:nth-child(1), #leaderboard li:nth-child(2), #leaderboard li:nth-child(3) are handled by specific classes */
+
+    .hidden { display: none !important; }
+    .visible { display: block !important; animation: fadeIn 0.5s ease-out; } /* Added animation to visible */
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+    @keyframes fadeInScale {
+        from {opacity: 0; transform: scale(0.95);}
+        to {opacity: 1; transform: scale(1);}
+    }
+    @keyframes pulseCorrect {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+        70% { transform: scale(1.03); box-shadow: 0 0 0 15px rgba(76, 175, 80, 0); }
+        100% { transform: scale(1); }
+    }
+    @keyframes shakeIncorrect {
+        0%, 100% { transform: translateX(0); }
+        20%, 60% { transform: translateX(-10px); }
+        40%, 80% { transform: translateX(10px); }
+    }
+    #timer {
+        font-size: clamp(1.2rem, 3vw, 1.5rem);
+        margin-top: 20px;
+        font-weight: bold;
+        color: #ffeb3b;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    }
+    .question-progress {
+        font-size: clamp(1rem, 2.5vw, 1.1rem);
+        margin-bottom: 15px;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+    }
+    .error-message {
+        color: var(--incorrect-color);
+        font-size: clamp(0.8rem, 1.8vw, 0.95rem);
+        margin-top: -5px;
+        margin-bottom: 10px;
+        display: block;
+        font-weight: bold;
+    }
+    .rank-text {
+        font-weight: bold;
+        color: #8aff8a; /* A vibrant green for rank */
+    }
+
+    .welcome-message {
+        font-family: 'Montserrat', sans-serif;
+        font-size: clamp(1.2rem, 3vw, 1.5rem);
+        margin-bottom: 25px;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+
+    /* Disclaimer Modal Styles */
+    .disclaimer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--disclaimer-overlay-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000; /* On top of everything */
+      backdrop-filter: blur(3px); /* Subtle blur for the background */
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .disclaimer-modal {
+      background: var(--disclaimer-modal-bg);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      max-width: 500px;
+      width: 90%;
+      text-align: left;
+      color: var(--disclaimer-text);
+      animation: fadeInScale 0.4s ease-out;
+    }
+
+    .disclaimer-modal h3 {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      color: white; /* Always white for contrast */
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .disclaimer-modal p {
+      font-size: clamp(0.9rem, 2vw, 1rem);
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .disclaimer-modal ul {
+        list-style: disc inside;
+        padding-left: 10px;
+        margin-bottom: 20px;
+    }
+
+    .disclaimer-modal ul li {
+        margin-bottom: 8px;
+        font-size: clamp(0.9rem, 2vw, 1rem);
+    }
+
+    .disclaimer-modal button {
+      display: block;
+      margin: 25px auto 0;
+      background: linear-gradient(45deg, #28a745, #218838); /* Green gradient for 'Got It' */
+      color: white;
+      padding: 12px 30px;
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      min-width: 180px;
+    }
+
+    .disclaimer-modal button:hover {
+        background: linear-gradient(45deg, #218838, #28a745);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Elite Quiz Master</h1>
+  <p class="welcome-message">Test your knowledge, rise through the ranks!</p>
+  <div id="login-section">
+    <input type="text" id="name" placeholder="Enter your name" required />
+    <span id="name-error" class="error-message hidden">Name is required.</span>
+    <input type="text" id="uid" placeholder="Enter your UID" required />
+    <span id="uid-error" class="error-message hidden">UID is required.</span>
+    <select id="level">
+      <option value="">Select Level</option>
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+    <span id="level-error" class="error-message hidden">Please select a level.</span>
+    <button onclick="startQuizFlow()">Start Quiz</button> <!-- Changed to startQuizFlow -->
+    <button id="showHistoryBtn" onclick="toggleHistorySection()">📜 View Ranks</button>
+    <div style="margin-top:20px;">
+      <label style="font-size:1.1rem;">Dark Mode:</label>
+      <input type="checkbox" id="darkModeToggle" onchange="toggleDark()" />
+    </div>
+  </div>
+
+  <div id="quiz-section" class="hidden">
+    <div class="question-progress" id="question-progress"></div>
+    <div id="question-box" class="question-box"></div>
+    <div id="timer"></div>
+    <button onclick="confirmQuitQuiz()">🔙 Quit Quiz</button>
+    <button class="home-button" onclick="goToHome()">🏠 Home</button>
+  </div>
+
+  <div id="result-section" class="hidden">
+    <h2 id="result-msg"></h2>
+    <p id="score-summary"></p>
+    <p id="rank-summary"></p>
+    <button onclick="downloadPDF()">Download PDF</button>
+    <button onclick="confirmRestartQuiz()">Restart Quiz</button>
+    <button class="home-button" onclick="goToHome()">🏠 Home</button>
+  </div>
+
+  <div id="history-section" class="hidden">
+      <h3>📜 Your Rank History</h3>
+      <div id="score-history-content"></div>
+      <h3>🏆 Top Players Leaderboard</h3>
+      <div id="leaderboard-content"></div>
+      <button id="clearHistoryBtn" onclick="clearQuizHistory()">🗑️ Clear Rank History</button>
+      <button class="home-button" onclick="goToHome()">🏠 Home</button>
+  </div>
+
+  <div style="margin-top: 30px;">
+    <h3>🔍 Search Questions</h3>
+    <input type="text" id="search" placeholder="Type to search..." oninput="showSearchResults()" />
+    <div id="search-result"></div>
+  </div>
+
+</div>
+
+<!-- Disclaimer Modal -->
+<div id="disclaimer-overlay" class="disclaimer-overlay hidden">
+  <div class="disclaimer-modal">
+    <h3>Quiz Rules & Disclaimer</h3>
+    <p>Welcome to Elite Quiz Master! Before you begin, please take a moment to understand the rules:</p>
+    <ul>
+      <li>Each quiz consists of 5 questions.</li>
+      <li>You have <strong>10 seconds</strong> to answer each question.</li>
+      <li>Points are awarded for correct answers:
+        <ul>
+          <li>Easy: 10 points</li>
+          <li>Medium: 20 points</li>
+          <li>Hard: 30 points</li>
+        </ul>
+      </li>
+      <li>Your rank (Novice, Apprentice, Expert, Master, Grandmaster) is determined by your total points across all quizzes.</li>
+      <li>You can view your past scores and the top 3 players on the leaderboard.</li>
+      <li>Quitting a quiz will not save your current progress.</li>
+    </ul>
+    <p><strong>Disclaimer:</strong> This is a simple quiz application. Your UID and scores are stored locally in your browser and are not shared or stored on any server. Clearing your browser's local storage will remove your history.</p>
+    <button onclick="acceptDisclaimer()">Got It! Let's Start!</button>
+  </div>
+</div>
+
+<script>
+// --- Constants ---
+const TIMER_SECONDS = 10;
+const LOCAL_STORAGE_SCORES_KEY = "quizScores";
+const LOCAL_STORAGE_DARK_MODE_KEY = "darkMode";
+const LOCAL_STORAGE_DISCLAIMER_ACCEPTED_KEY = "disclaimerAccepted"; // New key
+
+// --- Question Bank ---
+const questionBank = {
+  easy: [
+    { q: "2 + 2 = ?", a: ["3", "4", "5", "6"], c: 1, points: 10 },
+    { q: "Color of sky?", a: ["Blue", "Green", "Red", "Yellow"], c: 0, points: 10 },
+    { q: "Capital of India?", a: ["Delhi", "Mumbai", "Chennai", "Kolkata"], c: 0, points: 10 },
+    { q: "3 x 3 = ?", a: ["6", "7", "8", "9"], c: 3, points: 10 },
+    { q: "Sun rises from?", a: ["West", "East", "North", "South"], c: 1, points: 10 }
+  ],
+  medium: [
+    { q: "Which planet is known as Red Planet?", a: ["Mars", "Earth", "Venus", "Jupiter"], c: 0, points: 20 },
+    { q: "H2O is the chemical formula for?", a: ["Salt", "Water", "Acid", "Oxygen"], c: 1, points: 20 },
+    { q: "Fastest land animal?", a: ["Cheetah", "Lion", "Tiger", "Horse"], c: 0, points: 20 },
+    { q: "HTML stands for?", a: ["Hyper Text Markup Language", "Hyperlink and Text Markup Language", "Home Tool Markup Language", "None of the above"], c: 0, points: 20 },
+    { q: "CPU is part of?", a: ["Computer", "Table", "Fan", "Phone"], c: 0, points: 20 }
+  ],
+  hard: [
+    { q: "Quantum mechanics is branch of?", a: ["Physics", "Chemistry", "Biology", "Math"], c: 0, points: 30 },
+    { q: "Capital of Canada?", a: ["Ottawa", "Toronto", "Vancouver", "Montreal"], c: 0, points: 30 },
+    { q: "Light speed is?", a: ["3x10^8 m/s", "2x10^6 m/s", "5x10^7 m/s", "1x10^9 m/s"], c: 0, points: 30 },
+    { q: "Founder of Google?", a: ["Larry Page", "Mark Zuckerberg", "Steve Jobs", "Bill Gates"], c: 0, points: 30 },
+    { q: "Which is a binary tree type?", a: ["Binary Search Tree", "Array Tree", "Max Heap Tree", "Linked List Tree"], c: 0, points: 30 }
+  ]
+};
+
+// --- Trie Implementation (Unchanged) ---
+class TrieNode {
+  constructor() {
+    this.children = {};
+    this.isEnd = false;
+  }
+}
+class Trie {
+  constructor() {
+    this.root = new TrieNode();
+  }
+  insert(word) {
+    let node = this.root;
+    for (let char of word.toLowerCase()) {
+      if (!node.children[char]) node.children[char] = new TrieNode();
+      node = node.children[char];
+    }
+    node.isEnd = true;
+  }
+  searchPrefix(prefix) {
+    let node = this.root;
+    for (let char of prefix.toLowerCase()) {
+      if (!node.children[char]) return [];
+      node = node.children[char];
+    }
+    return this.collectAllWords(node, prefix);
+  }
+  collectAllWords(node, prefix, results = []) {
+    if (node.isEnd) results.push(prefix);
+    for (let char in node.children) {
+      this.collectAllWords(node.children[char], prefix + char, results);
+    }
+    return results;
+  }
+}
+const trie = new Trie();
+for (let lvl in questionBank) {
+  questionBank[lvl].forEach(q => trie.insert(q.q));
+}
+
+// --- Global Quiz State Variables ---
+let questions = [];
+let totalScore = 0;
+let currentQuestionIndex = 0;
+let timerInterval;
+let user = {};
+let currentQuizMaxPossiblePoints = 0;
+let disclaimerAcceptedSession = false; // Flag for current session
+
+// --- Initialization on Load ---
+document.addEventListener('DOMContentLoaded', () => {
+    loadDarkModePreference();
+    renderLoginScreen();
+    // Check if disclaimer was accepted in a previous session
+    if (localStorage.getItem(LOCAL_STORAGE_DISCLAIMER_ACCEPTED_KEY) === 'true') {
+        disclaimerAcceptedSession = true;
+    }
+});
+
+// --- Helper Functions ---
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function displayErrorMessage(elementId, message, show) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = message;
+        element.classList.toggle('hidden', !show);
+    }
+}
+
+/**
+ * Calculates the user's rank based on their total score.
+ * @param {number} points The total score achieved by the user.
+ * @returns {string} The rank string (e.g., "Novice", "Master").
+ */
+function getRank(points) {
+    if (points >= 141) return "Grandmaster";
+    if (points >= 111) return "Master";
+    if (points >= 71) return "Expert";
+    if (points >= 31) return "Apprentice";
+    return "Novice";
+}
+
+
+// --- UI Rendering Functions ---
+
+/**
+ * Hides all main sections and makes the login screen visible.
+ * Resets input fields and error messages.
+ */
+function renderLoginScreen() {
+    document.getElementById("login-section").classList.remove("hidden");
+    document.getElementById("quiz-section").classList.add("hidden");
+    document.getElementById("result-section").classList.add("hidden");
+    document.getElementById("history-section").classList.add("hidden");
+    document.getElementById("disclaimer-overlay").classList.add("hidden"); // Ensure disclaimer is hidden
+
+    document.getElementById("name").value = "";
+    document.getElementById("uid").value = "";
+    document.getElementById("level").value = "";
+    displayErrorMessage("name-error", "", false);
+    displayErrorMessage("uid-error", "", false);
+    displayErrorMessage("level-error", "", false);
+
+    document.getElementById("showHistoryBtn").textContent = "📜 View Ranks";
+}
+
+/**
+ * Hides all main sections and makes the quiz screen visible.
+ */
+function renderQuizScreen() {
+    document.getElementById("login-section").classList.add("hidden");
+    document.getElementById("quiz-section").classList.remove("hidden");
+    document.getElementById("result-section").classList.add("hidden");
+    document.getElementById("history-section").classList.add("hidden");
+    document.getElementById("disclaimer-overlay").classList.add("hidden"); // Ensure disclaimer is hidden
+}
+
+/**
+ * Hides all main sections and makes the result screen visible.
+ */
+function renderResultScreen() {
+    document.getElementById("login-section").classList.add("hidden");
+    document.getElementById("quiz-section").classList.add("hidden");
+    document.getElementById("result-section").classList.remove("hidden");
+    document.getElementById("history-section").classList.add("hidden");
+    document.getElementById("disclaimer-overlay").classList.add("hidden"); // Ensure disclaimer is hidden
+}
+
+/**
+ * Hides all main sections and makes the history section visible.
+ * Populates history and leaderboard content.
+ */
+function renderHistorySection() {
+    document.getElementById("login-section").classList.add("hidden");
+    document.getElementById("quiz-section").classList.add("hidden");
+    document.getElementById("result-section").classList.add("hidden");
+    document.getElementById("history-section").classList.remove("hidden");
+    document.getElementById("disclaimer-overlay").classList.add("hidden"); // Ensure disclaimer is hidden
+
+    updateLeaderboardContent(); // Populate leaderboard
+    showHistoryContent(); // Populate score history
+    document.getElementById("showHistoryBtn").textContent = "Hide Ranks";
+}
+
+/**
+ * Shows the disclaimer modal.
+ */
+function showDisclaimer() {
+    document.getElementById("disclaimer-overlay").classList.remove("hidden");
+}
+
+/**
+ * Hides the disclaimer modal and marks it as accepted for the session.
+ */
+function acceptDisclaimer() {
+    document.getElementById("disclaimer-overlay").classList.add("hidden");
+    disclaimerAcceptedSession = true;
+    localStorage.setItem(LOCAL_STORAGE_DISCLAIMER_ACCEPTED_KEY, 'true'); // Persist acceptance
+    proceedToQuiz(); // Actually start the quiz after acceptance
+}
+
+// --- Quiz Flow Functions ---
+// New entry point for starting quiz, handles disclaimer
+function startQuizFlow() {
+    const nameInput = document.getElementById("name");
+    const uidInput = document.getElementById("uid");
+    const levelSelect = document.getElementById("level");
+
+    let name = nameInput.value.trim();
+    let uid = uidInput.value.trim();
+    let level = levelSelect.value;
+
+    // Clear previous error messages
+    displayErrorMessage("name-error", "", false);
+    displayErrorMessage("uid-error", "", false);
+    displayErrorMessage("level-error", "", false);
+
+    let isValid = true;
+    if (!name) {
+      displayErrorMessage("name-error", "Name is required.", true);
+      isValid = false;
+    }
+    if (!uid) {
+      displayErrorMessage("uid-error", "UID is required.", true);
+      isValid = false;
+    }
+    if (!level) {
+      displayErrorMessage("level-error", "Please select a level.", true);
+      isValid = false;
+    }
+
+    if (!isValid) return; // If validation fails, stop here
+
+    user = { name, uid, level }; // Store user info valid input
+    
+    // If disclaimer hasn't been accepted yet for this session, show it
+    if (!disclaimerAcceptedSession) {
+        showDisclaimer();
+    } else {
+        // If already accepted, proceed directly
+        proceedToQuiz();
+    }
+}
+
+
+// Original startQuiz logic, now called after disclaimer is accepted
+function proceedToQuiz() {
+  questions = [...questionBank[user.level]];
+  shuffleArray(questions);
+
+  totalScore = 0; // Reset total score
+  currentQuestionIndex = 0;
+  currentQuizMaxPossiblePoints = questions.reduce((sum, q) => sum + q.points, 0); // Calculate max points for this quiz
+
+  renderQuizScreen(); // Show quiz section
+  showQuestion();
+}
+
+function showQuestion() {
+  if (currentQuestionIndex >= questions.length) {
+    return endQuiz();
+  }
+
+  const q = questions[currentQuestionIndex];
+  let currentOptions = [...q.a];
+  const originalCorrectAnswerIndex = q.c;
+
+  // Prepare options for shuffling, keeping track of original index
+  const shuffledOptionsWithIndices = currentOptions.map((opt, originalIdx) => ({ opt, originalIdx }));
+  shuffleArray(shuffledOptionsWithIndices);
+
+  // Find the new correct index after shuffling
+  let newCorrectIndex = shuffledOptionsWithIndices.findIndex(item => item.originalIdx === originalCorrectAnswerIndex);
+
+  const questionBox = document.getElementById("question-box");
+  questionBox.innerHTML = ''; // Clear previous question and buttons
+
+  const questionHeading = document.createElement('h3');
+  questionHeading.textContent = `${currentQuestionIndex + 1}. ${q.q}`;
+  questionBox.appendChild(questionHeading);
+
+  shuffledOptionsWithIndices.forEach((item, i) => {
+    const button = document.createElement('button');
+    button.className = 'answer-btn';
+    button.textContent = item.opt;
+    // Pass the actual correct index relative to the shuffled options
+    button.onclick = () => checkAnswer(i, newCorrectIndex);
+    questionBox.appendChild(button);
+  });
+
+  document.getElementById("question-progress").textContent = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
+
+  let time = TIMER_SECONDS;
+  const timerDisplay = document.getElementById("timer");
+  timerDisplay.textContent = `⏳ Time Left: ${time}s`;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    time--;
+    timerDisplay.textContent = `⏳ Time Left: ${time}s`;
+    if (time <= 0) {
+      clearInterval(timerInterval);
+      // If time runs out, mark current answer as incorrect and proceed
+      const answerButtons = questionBox.querySelectorAll(".answer-btn");
+      answerButtons.forEach(btn => btn.disabled = true); // Disable all buttons
+      // Optionally, highlight correct answer when time runs out
+      if (answerButtons[newCorrectIndex]) {
+          answerButtons[newCorrectIndex].classList.add("correct");
+      }
+      setTimeout(() => {
+        currentQuestionIndex++;
+        showQuestion();
+      }, 1200); // Short delay before next question
+    }
+  }, 1000);
+}
+
+function checkAnswer(selectedIndex, correctAnsIndex) {
+  clearInterval(timerInterval); // Stop the timer
+
+  const questionBox = document.getElementById("question-box");
+  const answerButtons = questionBox.querySelectorAll(".answer-btn");
+
+  answerButtons.forEach((btn, i) => {
+    if (i === correctAnsIndex) {
+      btn.classList.add("correct");
+    }
+    if (i === selectedIndex && i !== correctAnsIndex) {
+      btn.classList.add("incorrect");
+    }
+    btn.disabled = true; // Disable all buttons after an answer is chosen
+  });
+
+  // Award points if correct
+  if (selectedIndex === correctAnsIndex) {
+    totalScore += questions[currentQuestionIndex].points;
+  }
+
+  // Move to next question after a short delay
+  setTimeout(() => {
+    currentQuestionIndex++;
+    showQuestion();
+  }, 1200);
+}
+
+function endQuiz() {
+  renderResultScreen(); // Show result section
+
+  const userRank = getRank(totalScore);
+
+  let resultMsg = "";
+  if (totalScore === currentQuizMaxPossiblePoints) {
+      resultMsg = "🎉 Perfect Score! Congratulations!";
+  } else if (totalScore > currentQuizMaxPossiblePoints / 2) {
+      resultMsg = "🥳 Well Done!";
+  } else {
+      resultMsg = "😢 Better luck next time!";
+  }
+  document.getElementById("result-msg").textContent = resultMsg;
+  document.getElementById("score-summary").textContent = `Your Points: ${totalScore}/${currentQuizMaxPossiblePoints}`;
+  document.getElementById("rank-summary").innerHTML = `Your Rank: <span class="rank-text">${userRank}</span>`;
+
+  saveScore(userRank); // Save score with the calculated rank
+}
+
+function saveScore(rank) {
+  let history = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SCORES_KEY) || "[]");
+  history.push({ 
+      ...user, 
+      totalScore: totalScore, 
+      maxPossiblePoints: currentQuizMaxPossiblePoints,
+      rank: rank,
+      timestamp: new Date().toLocaleString() 
+  });
+  localStorage.setItem(LOCAL_STORAGE_SCORES_KEY, JSON.stringify(history));
+}
+
+function showHistoryContent() {
+  const historyContentDiv = document.getElementById("score-history-content");
+  historyContentDiv.innerHTML = ''; // Clear previous content
+
+  let history = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SCORES_KEY) || "[]");
+
+  if (history.length === 0) {
+      const p = document.createElement('p');
+      p.textContent = "No scores recorded yet. Play a quiz!";
+      historyContentDiv.appendChild(p);
+  } else {
+      const ul = document.createElement('ul');
+      // Show most recent scores first
+      history.slice().reverse().forEach(h => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span>${h.name} (${h.uid})</span> 
+                          <span>Level: ${h.level}</span> 
+                          <span>Points: ${h.totalScore}/${h.maxPossiblePoints || '?'}</span> 
+                          <span>Rank: <span class="rank-text">${h.rank}</span></span>
+                          <span>(${h.timestamp})</span>`;
+          ul.appendChild(li);
+      });
+      historyContentDiv.appendChild(ul);
+  }
+}
+
+function updateLeaderboardContent() {
+  const leaderboardContentDiv = document.getElementById("leaderboard-content");
+  leaderboardContentDiv.innerHTML = ''; // Clear previous content
+
+  let history = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SCORES_KEY) || "[]");
+
+  // Aggregate highest scores per user (UID)
+  const highestScoresPerUser = {};
+  history.forEach(entry => {
+      // Use totalScore for comparison
+      if (!highestScoresPerUser[entry.uid] || entry.totalScore > highestScoresPerUser[entry.uid].totalScore) {
+          highestScoresPerUser[entry.uid] = { ...entry };
+      }
+  });
+
+  let uniqueUserScores = Object.values(highestScoresPerUser);
+
+  // Sort by totalScore descending, then by name alphabetically
+  uniqueUserScores.sort((a, b) => {
+    if (b.totalScore !== a.totalScore) {
+      return b.totalScore - a.totalScore;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  if (uniqueUserScores.length === 0) {
+      const p = document.createElement('p');
+      p.textContent = "No scores on the leaderboard yet. Be the first!";
+      leaderboardContentDiv.appendChild(p);
+  } else {
+      const ol = document.createElement('ol');
+      // Display only top 3
+      uniqueUserScores.slice(0, 3).forEach((h, index) => { 
+          const li = document.createElement('li');
+          // Add specific classes for top 3 styling
+          if (index === 0) li.classList.add('first-place');
+          else if (index === 1) li.classList.add('second-place');
+          else if (index === 2) li.classList.add('third-place');
+
+          li.innerHTML = `<span>${h.name}</span> 
+                          <span>Level: ${h.level}</span> 
+                          <span>Points: ${h.totalScore}</span>
+                          <span>Rank: <span class="rank-text">${h.rank}</span></span>`;
+          ol.appendChild(li);
+      });
+      leaderboardContentDiv.appendChild(ol);
+  }
+}
+
+// --- UI Toggle Functions ---
+function toggleDark() {
+  const isDarkMode = document.body.classList.toggle("dark");
+  localStorage.setItem(LOCAL_STORAGE_DARK_MODE_KEY, isDarkMode);
+}
+
+function loadDarkModePreference() {
+    const isDarkMode = localStorage.getItem(LOCAL_STORAGE_DARK_MODE_KEY) === 'true';
+    if (isDarkMode) {
+        document.body.classList.add("dark");
+        document.getElementById("darkModeToggle").checked = true;
+    }
+}
+
+function toggleHistorySection() {
+    const historySection = document.getElementById("history-section");
+    const isHistoryVisible = !historySection.classList.contains("hidden");
+
+    clearInterval(timerInterval); // Stop quiz timer if it's running
+
+    if (isHistoryVisible) {
+        historySection.classList.add("hidden");
+        renderLoginScreen(); // Go back to login screen
+        document.getElementById("showHistoryBtn").textContent = "📜 View Ranks";
+    } else {
+        renderHistorySection(); // Show history section
+        document.getElementById("showHistoryBtn").textContent = "Hide Ranks";
+    }
+}
+
+function confirmQuitQuiz() {
+  const confirmQuit = confirm("Are you sure you want to quit the current quiz? Your progress will not be saved.");
+  if (confirmQuit) {
+    goToHome();
+  } else {
+    // If user cancels, restart the timer
+    let time = TIMER_SECONDS;
+    const timerDisplay = document.getElementById("timer");
+    timerDisplay.textContent = `⏳ Time Left: ${time}s`; // Reset visual timer
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      time--;
+      timerDisplay.textContent = `⏳ Time Left: ${time}s`;
+      if (time <= 0) {
+        clearInterval(timerInterval);
+        currentQuestionIndex++;
+        showQuestion();
+      }
+    }, 1000);
+  }
+}
+
+function confirmRestartQuiz() {
+    const confirmRestart = confirm("Are you sure you want to restart the quiz?");
+    if (confirmRestart) {
+        location.reload(); // Simple full reload for a fresh start
+    }
+}
+
+function goToHome() {
+    clearInterval(timerInterval);
+    renderLoginScreen(); // Go to login screen, which handles hiding others and resetting inputs
+}
+
+function clearQuizHistory() {
+    const confirmClear = confirm("Are you sure you want to clear ALL quiz rank history? This action cannot be undone.");
+    if (confirmClear) {
+        localStorage.removeItem(LOCAL_STORAGE_SCORES_KEY);
+        // Refresh the displayed history and leaderboard by re-calling their content functions
+        showHistoryContent();
+        updateLeaderboardContent();
+        alert("Quiz rank history has been cleared.");
+    }
+}
+
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const userName = user.name || "N/A";
+  const userUID = user.uid || "N/A";
+  const userLevel = user.level || "N/A";
+  const quizQuestionsCount = questions.length; // Use original length of quiz questions
+  const finalRank = getRank(totalScore);
+
+  doc.setFontSize(22);
+  doc.text(`Quiz Result - Elite Quiz Master`, 10, 20);
+  doc.setFontSize(14);
+  doc.text(`---------------------------------------`, 10, 30);
+  doc.text(`Participant: ${userName} (UID: ${userUID})`, 10, 40);
+  doc.text(`Quiz Level: ${userLevel.charAt(0).toUpperCase() + userLevel.slice(1)}`, 10, 50);
+  doc.text(`Total Questions Answered: ${currentQuestionIndex}/${quizQuestionsCount}`, 10, 60); // CurrentIndex is how many were *shown*
+  doc.text(`Total Points: ${totalScore}/${currentQuizMaxPossiblePoints}`, 10, 70);
+  doc.text(`Your Rank: ${finalRank}`, 10, 80);
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, 10, 90);
+  doc.text(`Time: ${new Date().toLocaleTimeString()}`, 10, 100);
+  
+  // Optionally add details for each question if desired (more complex)
+  // For simplicity, just summarize.
+
+  doc.save(`${userName}_${userLevel}_quiz_result.pdf`);
+}
+
+function showSearchResults() {
+  const text = document.getElementById("search").value;
+  const searchResultDiv = document.getElementById("search-result");
+  searchResultDiv.innerHTML = ""; // Clear previous results
+
+  if (!text) {
+    return;
+  }
+  const results = trie.searchPrefix(text);
+
+  if (results.length === 0) {
+      const p = document.createElement('p');
+      p.textContent = "No matching questions found.";
+      searchResultDiv.appendChild(p);
+  } else {
+      const ul = document.createElement('ul');
+      results.forEach(r => {
+          const li = document.createElement('li');
+          li.textContent = r;
+          ul.appendChild(li);
+      });
+      searchResultDiv.appendChild(ul);
+  }
+}
+</script>
+</body>
+</html>
